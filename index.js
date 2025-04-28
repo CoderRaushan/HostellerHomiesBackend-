@@ -7,7 +7,7 @@ const port = 3000
 
 connectDB();
 app.use(cors({
-  origin: ['https://hostellerhomie.netlify.app', 'http://localhost:5173'],
+  origin: ['https://hostellerhomiess.netlify.app', 'http://localhost:5173'],
   credentials: true,
 }));
 app.use(express.json({ extended: false }));
