@@ -40,6 +40,10 @@ const StudentSchema = new Schema({
         type:String,
         required:true
     },
+    accountNumber:{
+        type:String,
+        required:true
+    },
     address:{
         type:String,
         required:true

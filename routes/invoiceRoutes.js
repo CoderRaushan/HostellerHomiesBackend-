@@ -6,7 +6,7 @@ const { generateInvoices, getInvoicesbyid, getInvoices, updateInvoice } = requir
 // @route   Generate api/invoice/generate
 // @desc    Generate invoice
 // @access  Public
-router.post('/generate', [
+router.post('/generate', [ 
     check('hostel', 'Hostel is required').not().isEmpty(),
 ], generateInvoices);
 

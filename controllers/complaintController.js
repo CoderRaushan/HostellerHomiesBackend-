@@ -87,6 +87,7 @@ exports.resolve = async (req, res) => {
     try {
         const complaint = await Complaint.findById(id);
         complaint.status = "solved";
+        complaint.resolvedAt = new Date();
         await complaint.save();
         success = true;
         res.json({ success });

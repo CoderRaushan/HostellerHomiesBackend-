@@ -13,8 +13,9 @@ const registerStudent = async (req, res) => {
 
     const {
         name, urn, room_no, batch, dept, course,
-        email, father_name, contact, address,
-        dob, uidai, hostel, password
+        accountNumber,
+        email, father_name, contact, address, 
+        dob, uidai, hostel, password, 
     } = req.body;
 
     try {
@@ -63,6 +64,7 @@ const registerStudent = async (req, res) => {
             address,
             dob,
             uidai,
+            accountNumber,
             user: user._id,
             hostel: shostel._id
         });
@@ -149,35 +151,65 @@ const getAllStudents = async (req, res) => {
     }
 }
 
-const updateStudent = async (req, res) => {
-
+const getStudentsById = async (req, res) => {
     let success = false;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ success, errors: errors.array() });
+    }
+
+    let { id } = req.params;
+
     try {
-        const student = await Student.findById(req.student.id).select('-password');
 
-        const { name, urn, room_no, batch, dept, course, email, father_name, contact, address, dob, uidai, user, hostel } = req.body;
+        const student = await Student.findById(id).select('-password');
 
-        student.name = name;
-        student.urn = urn;
-        student.room_no = room_no;
-        student.batch = batch;
-        student.dept = dept;
-        student.course = course;
-        student.email = email;
-        student.father_name = father_name;
-        student.contact = contact;
-        student.address = address;
-        student.dob = dob;
-        student.uidai = uidai;
-        student.hostel = hostel;
-
-        await student.save();
+        if (!student) {
+            return res.status(404).json({ success, errors: [{ msg: 'Student not found' }] });
+        }
 
         success = true;
-        res.json({ success, student });
-    } catch (err) {
+        res.json({ success, student  });
+    }
+    catch (err) {
         res.status(500).json({ success, errors: [{ msg: 'Server error' }] });
     }
+}
+
+const updateStudent = async (req, res) => {
+    // console.log(req.body);
+    let success = false;
+    try {
+    const student = await Student.findById(req.params.id).select('-password');
+    if (!student) {
+        return res.status(404).json({ success, errors: [{ msg: 'Student not found' }] });
+    }
+
+    const {
+        name, urn, room_no, batch, dept, course, email,
+        father_name, contact, address, dob, uidai, hostel
+    } = req.body;
+
+    student.name = name;
+    student.urn = urn;
+    student.room_no = room_no;
+    student.batch = batch;
+    student.dept = dept;
+    student.course = course;
+    student.email = email;
+    student.father_name = father_name;
+    student.contact = contact;
+    student.address = address;
+    student.dob = dob;
+    student.uidai = uidai;
+    const savedStudent = await student.save();
+    success = true;
+    res.json({ success, student: savedStudent });
+
+} catch (err) {
+    console.error("Error while saving:", err); // <== Ye bhi log karo
+    res.status(500).json({ success, errors: [{ msg: 'Server error', error: err.message }] });
+}
 }
 
 const deleteStudent = async (req, res) => {
@@ -248,5 +280,6 @@ module.exports = {
     updateStudent,
     deleteStudent,
     getAllStudents,
-    csvStudent
+    csvStudent,
+    getStudentsById
 }
