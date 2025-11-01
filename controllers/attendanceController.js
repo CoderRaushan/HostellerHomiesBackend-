@@ -9,6 +9,9 @@ const markAttendance = async (req, res) => {
     }
     const { student, status } = req.body;
     const date = new Date();
+
+
+    
     const alreadyattendance = await Attendance.findOne({ student, date: { $gte: date.setHours(0, 0, 0, 0), $lt: date.setHours(23, 59, 59, 999) } });
     if (alreadyattendance) {
         return res.status(409).json({ success, error: 'Attendance already marked' });
