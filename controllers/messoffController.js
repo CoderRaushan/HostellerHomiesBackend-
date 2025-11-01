@@ -1,5 +1,5 @@
 const { validationResult } = require('express-validator');
-const { MessOff, Student } = require('../models/');
+const { MessOff, Student, User } = require('../models/');
 const { verifyToken } = require('../utils/auth');
 
 // @route   request api/messoff/request
@@ -9,61 +9,127 @@ exports.requestMessOff = async (req, res) => {
     let success = false;
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({"message": errors.array(), success});
+        return res.status(400).json({ message: errors.array(), success });
     }
+
     const { student, leaving_date, return_date } = req.body;
-    const today = new Date();
-    if (new Date(leaving_date) > new Date(return_date)) {
-        return res.status(400).json({success, "message": "Leaving date cannot be greater than return date"});
-    }
-    else if (new Date(leaving_date) < today) {
-        return res.status(400).json({success, "message": "Request cannot be made for past Mess off"});
-    }
+
     try {
+        // Fetch all requests of this student
+        const isPending = await MessOff.find({ student });
+
+        // ✅ 1. Check if any request is still pending
+        const hasPending = isPending.some(req => req.status === 'pending');
+        if (hasPending) {
+            return res.status(400).json({ 
+                success, 
+                message: "You already have a pending request. Please wait until it’s approved or rejected."
+            });
+        }
+
+        // ✅ 2. Validate date logic
+        const today = new Date();
+        const leaveDate = new Date(leaving_date);
+        const returnDate = new Date(return_date);
+
+        if (leaveDate > returnDate) {
+            return res.status(400).json({ success, message: "Leaving date cannot be greater than return date" });
+        }
+
+        if (leaveDate < today.setHours(0, 0, 0, 0)) {
+            return res.status(400).json({ success, message: "Request cannot be made for past dates" });
+        }
+
+        // ✅ 3. Check duration (no more than 30 days)
+        const diffInDays = Math.ceil((returnDate - leaveDate) / (1000 * 60 * 60 * 24));
+        if (diffInDays > 30) {
+            return res.status(400).json({ 
+                success, 
+                message: "Mess off cannot exceed 30 days." 
+            });
+        }
+
+        // ✅ If everything is fine, create new request
         const messOff = new MessOff({
             student,
             leaving_date,
             return_date
         });
+
         await messOff.save();
         success = true;
-        return res.status(200).json({success, "message": "Mess off request sent successfully"});
+        return res.status(200).json({ success, message: "Mess off request sent successfully" });
+
     } catch (err) {
         console.error(err.message);
-        return res.status(500).json({success, "message": "Server Error"});
+        return res.status(500).json({ success, message: "Server Error" });
     }
-}
+};
 
-// @route   GET count of request api/messoff/count
-// @desc    Get all mess off requests
-// @access  Private
-exports.countMessOff = async (req, res) => {
-    let success = false;
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({errors: errors.array(), success});
-    }
+exports.messHistory = async (req, res) => {
+  try {
     const { student } = req.body;
-    try {
-        let date = new Date();
-        const list = await MessOff.find({ student, leaving_date: { $gte: new Date(date.getFullYear(), date.getMonth(), 1), $lte: new Date(date.getFullYear(), date.getMonth() + 1, 0) } });
-        let approved = await MessOff.find({student, status: "Approved", leaving_date: {$gte: new Date(date.getFullYear(), date.getMonth(), 1), $lte: new Date(date.getFullYear(), date.getMonth()+1, 0)}});
-        
-        let days = 0;
-        for (let i = 0; i < approved.length; i++) {
-            days += (new Date(approved[i].return_date) - new Date(approved[i].leaving_date))/(1000*60*60*24);
-        }
+    console.log("mess history request for:", student);
 
-        approved = days;
+    // Current date
+    const today = new Date();
 
-        success = true;
-        return res.status(200).json({success, list, approved});
-    }
-    catch (err) {
-        console.error(err.message);
-        return res.status(500).json({success, "message": "Server Error"});
-    }
-}
+    // 1 month ago
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(today.getMonth() - 1);
+
+    // ✅ Automatically delete requests older than 1 month
+    await MessOff.deleteMany({
+      student,
+      request_date: { $lt: oneMonthAgo },
+    });
+
+    // ✅ Fetch only last month's records
+    const lastMonthHistory = await MessOff.find({
+      student,
+      request_date: { $gte: oneMonthAgo },
+    }).sort({ request_date: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "Fetched mess off history (last month).",
+      history: lastMonthHistory,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+
+exports.AdminMessHistory = async (req, res) => {
+   try {
+    // Calculate date for 1 month ago
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    // Fetch all records within last 1 month
+    const history = await MessOff.find({
+      request_date: { $gte: oneMonthAgo }   // records from last 1 month
+    })
+      .populate("student", "name room_no roll_no hostel accountNumber") // populate student details
+      .sort({ request_date: -1 }); // latest first
+
+    res.status(200).json({
+      success: true,
+      count: history.length,
+      history,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+
 
 // @route   GET api/messoff/list
 // @desc    Get all mess off requests

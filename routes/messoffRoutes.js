@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { check } = require('express-validator');
-const { requestMessOff, countMessOff, listMessOff, updateMessOff } = require('../controllers/messoffController');
+const { requestMessOff,AdminMessHistory, countMessOff, listMessOff, updateMessOff,messHistory } = require('../controllers/messoffController');
 
 // @route   request api/messoff/request
 // @desc    Request for mess off
@@ -11,13 +11,11 @@ router.post('/request', [
     check('leaving_date', 'Leaving date is required').not().isEmpty(),
     check('return_date', 'Return date is required').not().isEmpty()
 ], requestMessOff);
+// list last month history for user
+router.post('/history', messHistory);
 
-// @route   GET count of request api/messoff/count
-// @desc    Get all mess off requests
-// @access  Private
-router.post('/count', [
-    check('student', 'Student ID is required').not().isEmpty()
-], countMessOff);
+// list last month history for admin for all users
+router.post('/admin/history', AdminMessHistory);
 
 // @route   GET list of request api/messoff/list
 // @desc    Get all mess off requests

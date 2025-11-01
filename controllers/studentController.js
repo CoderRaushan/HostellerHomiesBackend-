@@ -14,9 +14,15 @@ const registerStudent = async (req, res) => {
     const {
         name, urn, room_no, batch, dept, course,
         accountNumber,
-        email, father_name, contact, address, 
+        email, fatherName, contact, address, 
         dob, uidai, hostel, password, 
     } = req.body;
+
+    if(!name || !urn || !room_no || !batch || !dept || !course ||
+        !accountNumber || !email || !fatherName || !contact ||
+        !address || !dob || !uidai || !hostel || !password) {
+        return res.status(400).json({ success, errors: [{ msg: 'Please fill all fields' }] });
+    }
 
     try {
         // Check if student with same URN exists
@@ -26,7 +32,7 @@ const registerStudent = async (req, res) => {
         }
 
         // Check if user with same email already exists
-        let existingUser = await User.findOne({ email });
+        let existingUser = await Student.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ success, errors: [{ msg: 'Email already registered' }] });
         }
@@ -59,7 +65,7 @@ const registerStudent = async (req, res) => {
             dept,
             course,
             email,
-            father_name,
+            fatherName,
             contact,
             address,
             dob,
@@ -77,7 +83,7 @@ const registerStudent = async (req, res) => {
     } catch (err) {
         console.error("Error in registerStudent:", err);
         if (err.code === 11000) {
-            return res.status(400).json({ success, errors: [{ msg: 'Duplicate entry. Email or URN already exists.' }] });
+            return res.status(400).json({ success, errors: [{ msg: err.message }] });
         }
         res.status(500).json({ success, errors: [{ msg: 'Server error' }] });
     }
