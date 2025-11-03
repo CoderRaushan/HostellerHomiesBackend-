@@ -13,7 +13,8 @@ const StudentSchema = new Schema({
     },
     room_no:{
         type:Number,
-        required:true
+        required:true,
+         unique:true
     },
     batch:{
         type:Number,
@@ -42,7 +43,8 @@ const StudentSchema = new Schema({
     },
     accountNumber:{
         type:String,
-        required:true
+        required:true,
+         unique:true
     },
     address:{
         type:String,
@@ -67,7 +69,7 @@ const StudentSchema = new Schema({
     },
     hostel:{
         type:Schema.Types.ObjectId,
-        ref:'hostel'
+        ref:'Hostel'
     },
     date:{
         type:Date,

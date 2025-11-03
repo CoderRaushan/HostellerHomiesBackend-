@@ -1,6 +1,7 @@
 const { generateToken, verifyToken } = require('../utils/auth');
 const { validationResult } = require('express-validator');
-const { Student, Hostel, User, Admin } = require('../models');
+const { Student, Hostel, User, Admin, Room } = require('../models');
+
 const bcrypt = require('bcryptjs');
 const Parser = require('json2csv').Parser;
 const registerStudent = async (req, res) => {
@@ -14,12 +15,12 @@ const registerStudent = async (req, res) => {
     const {
         name, urn, room_no, batch, dept, course,
         accountNumber,
-        email, fatherName, contact, address, 
+        email, father_name, contact, address, 
         dob, uidai, hostel, password, 
     } = req.body;
 
     if(!name || !urn || !room_no || !batch || !dept || !course ||
-        !accountNumber || !email || !fatherName || !contact ||
+        !accountNumber || !email || !father_name || !contact ||
         !address || !dob || !uidai || !hostel || !password) {
         return res.status(400).json({ success, errors: [{ msg: 'Please fill all fields' }] });
     }
@@ -29,6 +30,18 @@ const registerStudent = async (req, res) => {
         let existingStudent = await Student.findOne({ urn });
         if (existingStudent) {
             return res.status(400).json({ success, errors: [{ msg: 'Student with this URN already exists' }] });
+        }
+
+        // uidai
+        existingStudent = await Student.findOne({ uidai });
+        if (existingStudent) {
+            return res.status(400).json({ success, errors: [{ msg: 'Student with this UIDAI already exists' }] });
+        }
+
+        // contact
+        existingStudent = await Student.findOne({ contact });
+        if (existingStudent) {
+            return res.status(400).json({ success, errors: [{ msg: 'Student with this contact number already exists' }] });
         }
 
         // Check if user with same email already exists
@@ -41,6 +54,15 @@ const registerStudent = async (req, res) => {
         const shostel = await Hostel.findOne({ name: hostel });
         if (!shostel) {
             return res.status(400).json({ success, errors: [{ msg: 'Hostel not found' }] });
+        }
+
+         // 🏘️ Step 3: Check room availability
+        const room = await Room.findOne({ roomNumber: room_no });
+        if (!room) {
+            return res.status(404).json({ success, errors: [{ msg: `Room ${room_no} does not exist` }] });
+        }
+        if (room.occupied) {
+            return res.status(400).json({ success, errors: [{ msg: `Room ${room_no} is already occupied` }] });
         }
 
         // Hash password
@@ -65,7 +87,7 @@ const registerStudent = async (req, res) => {
             dept,
             course,
             email,
-            fatherName,
+            father_name,
             contact,
             address,
             dob,
@@ -77,8 +99,12 @@ const registerStudent = async (req, res) => {
 
         await student.save();
 
+        room.occupied = true;
+        room.student = student._id;
+        await room.save();
+
         success = true;
-        res.status(201).json({ success, student });
+        res.status(201).json({ success, student, message: `Student registered and room ${room_no} allotted successfully` });
 
     } catch (err) {
         console.error("Error in registerStudent:", err);
@@ -183,40 +209,105 @@ const getStudentsById = async (req, res) => {
 }
 
 const updateStudent = async (req, res) => {
-    // console.log(req.body);
-    let success = false;
-    try {
-    const student = await Student.findById(req.params.id).select('-password');
+  let success = false;
+  try {
+    const student = await Student.findById(req.params.id);
     if (!student) {
-        return res.status(404).json({ success, errors: [{ msg: 'Student not found' }] });
+      return res.status(404).json({
+        success,
+        errors: [{ msg: "Student not found" }],
+      });
     }
 
     const {
-        name, urn, room_no, batch, dept, course, email,
-        father_name, contact, address, dob, uidai, hostel
+      name,
+      urn,
+      room_no,
+      batch,
+      dept,
+      course,
+      email,
+      father_name,
+      contact,
+      address,
+      dob,
+      uidai,
+      hostel,
     } = req.body;
 
-    student.name = name;
-    student.urn = urn;
-    student.room_no = room_no;
-    student.batch = batch;
-    student.dept = dept;
-    student.course = course;
-    student.email = email;
-    student.father_name = father_name;
-    student.contact = contact;
-    student.address = address;
-    student.dob = dob;
-    student.uidai = uidai;
-    const savedStudent = await student.save();
-    success = true;
-    res.json({ success, student: savedStudent });
+    const oldRoomNo = student.room_no;
+    const newRoomNo = room_no;
 
-} catch (err) {
-    console.error("Error while saving:", err); // <== Ye bhi log karo
-    res.status(500).json({ success, errors: [{ msg: 'Server error', error: err.message }] });
-}
-}
+    // ⚙️ If room number changed
+    if (oldRoomNo !== newRoomNo) {
+      // 🔹 1️⃣ Unassign student from old room
+      const oldRoom = await Room.findOne({ roomNumber: oldRoomNo });
+      if (oldRoom) {
+        console.log(`✅ Cleared old room ${oldRoomNo}`);
+        oldRoom.occupied = false;
+        console.log(`✅ Cleared old room ${oldRoomNo}`);
+        oldRoom.student = null; // 🧨 THIS LINE removes the old ObjectId
+        console.log(`✅ Cleared old room ${oldRoomNo}`);
+        await oldRoom.save(); // 🔥 Save immediately to apply the change
+        console.log(`✅ Cleared old room ${oldRoomNo}`);
+      }
+
+      // 🔹 2️⃣ Assign student to new room
+      const newRoom = await Room.findOne({ roomNumber: newRoomNo });
+      if (!newRoom) {
+        return res.status(400).json({
+          success,
+          errors: [{ msg: `Room ${newRoomNo} not found` }],
+        });
+      }
+
+      if (newRoom.occupied && String(newRoom.student) !== String(student._id)) {
+        return res.status(400).json({
+          success,
+          errors: [{ msg: `Room ${newRoomNo} already occupied` }],
+        });
+      }
+
+      newRoom.occupied = true;
+      newRoom.student = student._id;
+      await newRoom.save();
+
+      student.room_no = newRoomNo;
+    }
+
+    const shostel = await Hostel.findOne({ name: hostel });
+        if (!shostel) {
+            return res.status(400).json({ success, errors: [{ msg: 'Hostel not found' }] });
+        }
+    // 🔹 3️⃣ Update other fields
+    Object.assign(student, {
+      name,
+      urn,
+      batch,
+      dept,
+      course,
+      email,
+      father_name,
+      contact,
+      address,
+      dob,
+      uidai,
+      hostel:shostel._id,
+    });
+
+    await student.save();
+
+    success = true;
+    res.json({ success, student });
+  } catch (err) {
+    console.error("❌ Error while saving:", err);
+    res.status(500).json({
+      success,
+      errors: [{ msg: "Server error", error: err.message }],
+    });
+  }
+};
+
 
 const deleteStudent = async (req, res) => {
     try {

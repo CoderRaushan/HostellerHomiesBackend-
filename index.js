@@ -1,31 +1,38 @@
-const express = require('express')
-const connectDB = require('./utils/conn')
-const cors = require('cors')
+const express = require("express");
+const connectDB = require("./utils/conn");
+const cors = require("cors");
 
-const app = express()
-const port = 3000
+const app = express();
+const port = 3000;
 
 connectDB();
-app.use(cors({
-  origin: ['https://hostellerhomiess.netlify.app', 'http://localhost:5173','https://hosteller-homies-3jwk.vercel.app', 'https://hostellers-olive.vercel.app'],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: [
+      "https://hostellerhomiess.netlify.app",
+      "http://localhost:5173",
+      "https://hosteller-homies-3jwk.vercel.app",
+      "https://hostellers-olive.vercel.app",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
 app.use(express.json({ extended: false }));
 
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/student', require('./routes/studentRoutes'));
-app.use('/api/admin', require('./routes/adminRoutes'));
-app.use('/api/complaint', require('./routes/complaintRoutes'));
-app.use('/api/invoice', require('./routes/invoiceRoutes'));
-app.use('/api/messoff', require('./routes/messoffRoutes'));
-app.use('/api/request', require('./routes/requestRoutes'));
-app.use('/api/attendance', require('./routes/attendanceRoutes'));
-app.use('/api/suggestion', require('./routes/suggestionRoutes'));
-app.use("/api/Event",require('./routes/EventFundRoutes.js'));
+app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/student", require("./routes/studentRoutes"));
+app.use("/api/admin", require("./routes/adminRoutes"));
+app.use("/api/complaint", require("./routes/complaintRoutes"));
+app.use("/api/invoice", require("./routes/invoiceRoutes"));
+app.use("/api/messoff", require("./routes/messoffRoutes"));
+app.use("/api/request", require("./routes/requestRoutes"));
+app.use("/api/attendance", require("./routes/attendanceRoutes"));
+app.use("/api/suggestion", require("./routes/suggestionRoutes"));
+app.use("/api/Event", require("./routes/EventFundRoutes.js"));
 app.use("/api/guard", require("./routes/securityGuards.js"));
-
+app.use("/api/rooms", require("./routes/roomRoutes"));
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+  console.log(`Example app listening on port ${port}`);
+});
