@@ -118,35 +118,28 @@ const registerStudent = async (req, res) => {
 
 const getStudent = async (req, res) => {
     try {
-        // console.log("comming to get student data");
+    
         let success = false;
-        // const errors = validationResult(req);
-        // if (!errors.isEmpty()) {
-        //     return res.status(400).json({success, errors: errors.array() });
-        // }
-        // console.log("req body", req.body);
         const { isAdmin } = req.body;
-        // console.log("is admin", isAdmin);
         if (isAdmin) 
         {
-            // return res.status(400).json({success, errors:  'Admin cannot access this route' });
         const { token } = req.body;
-        // console.log("token is ", token);
+     
         const decoded = verifyToken(token);
-        // console.log("decoded data", decoded);
+      
         const admin = await Admin.findOne({ user: decoded.userId }).select('-password');
-        // console.log("admin data", admin);
+     
         success = true;
         res.json({ success,student:admin,isAdmin:true });
         }
         else
         {
             const { token } = req.body;
-            // console.log("token is ", token);
+          
             const decoded = verifyToken(token);
-            // console.log("decoded data", decoded);
+          
             const student = await Student.findOne({ user: decoded.userId }).select('-password');
-            // console.log("student data", student);
+         
             if (!student) {
                 return res.status(400).json({ success, errors: 'Student does not exist' });
             }
@@ -243,13 +236,13 @@ const updateStudent = async (req, res) => {
       // 🔹 1️⃣ Unassign student from old room
       const oldRoom = await Room.findOne({ roomNumber: oldRoomNo });
       if (oldRoom) {
-        console.log(`✅ Cleared old room ${oldRoomNo}`);
+
         oldRoom.occupied = false;
-        console.log(`✅ Cleared old room ${oldRoomNo}`);
+      
         oldRoom.student = null; // 🧨 THIS LINE removes the old ObjectId
-        console.log(`✅ Cleared old room ${oldRoomNo}`);
+    
         await oldRoom.save(); // 🔥 Save immediately to apply the change
-        console.log(`✅ Cleared old room ${oldRoomNo}`);
+       
       }
 
       // 🔹 2️⃣ Assign student to new room

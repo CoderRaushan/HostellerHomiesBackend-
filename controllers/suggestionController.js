@@ -64,7 +64,7 @@ exports.registerSuggestion = async (req, res) => {
 // Get today's suggestion count
 exports.getTodayCount = async (req, res) => {
     try {
-        console.log("counting...");
+    
         const { student } = req.query;
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);

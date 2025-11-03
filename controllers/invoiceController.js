@@ -169,20 +169,15 @@ const { Invoice, MessOff, Student } = require('../models');
 //         }
 //     }
 exports.generateInvoices = async (req, res) => {
-    console.log('Generating invoices...');
     let success = false;
 
     const { studentId, messDiet } = req.body;
-    console.log("Hostel ID:", studentId, "Mess Diet:", messDiet);
 
     try {
         const students = await Student.findById(studentId );
 
-        console.log("Students found:", students);
         const studentIds = students.map(s => s._id);
-        console.log("Student IDs:", studentIds);
-
-
+     
         // Get already generated invoices for current month
         const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
         const existingInvoices = await Invoice.find({

@@ -60,7 +60,6 @@ exports.getbyhostel = async (req, res) => {
       .populate("student", ["name", "room_no", "urn"])
       .lean();
     success = true;
-    console.log(complaints);
     res.json({ success, complaints });
   } catch (err) {
     console.error(err.message);

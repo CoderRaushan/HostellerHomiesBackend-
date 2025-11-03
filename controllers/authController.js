@@ -4,7 +4,7 @@ const { generateToken, verifyToken } = require('../utils/auth');
 const User = require('../models/User');
 
 exports.login = async (req, res, next) => {
-    // console.log("comming to login");
+
     let success = false;
     try {
         const errors = validationResult(req);
@@ -27,7 +27,6 @@ exports.login = async (req, res, next) => {
             }
             const token = generateToken(user.id, user.isAdmin);
             req.userId=user.id;
-            // console.log(user)
             res.status(200).json({
                 success: true,
                 data: {

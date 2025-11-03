@@ -69,7 +69,6 @@ exports.requestMessOff = async (req, res) => {
 exports.messHistory = async (req, res) => {
   try {
     const { student } = req.body;
-    console.log("mess history request for:", student);
 
     // Current date
     const today = new Date();

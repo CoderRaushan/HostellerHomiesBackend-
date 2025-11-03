@@ -45,7 +45,6 @@ const EventFund = require('../models/EventFundmodel');
 
 
 exports.EventFundRegister = async (req, res) => {
-    console.log("Event Fund Register API Hit ✅");
     let success = false;
 
     try {
@@ -76,7 +75,6 @@ exports.EventFundRegister = async (req, res) => {
         const deleteResult = await EventFund.deleteMany({
             createdAt: { $lt: oneMonthAgo }
         });
-        console.log(`🧹 Old records deleted: ${deleteResult.deletedCount}`);
 
         // 4️⃣ Create new request
         const newEventFund = new EventFund({
@@ -113,12 +111,10 @@ exports.EventFundRegister = async (req, res) => {
 
 
 exports.getEventFundBtStudentId = async (req, res) => {
-    console.log("hi.... here");
-
+   
     try {
         const { studentId } = req.body;
-        console.log("Student ID:", studentId);
-
+    
         if (!studentId) {
             return res.status(400).json({ success: false, msg: "Student ID is required!" });
         }
@@ -126,11 +122,10 @@ exports.getEventFundBtStudentId = async (req, res) => {
         // Calculate one month ago date
         const oneMonthAgo = new Date();
         oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-        console.log("One month ago:", oneMonthAgo);
 
         // Delete records older than 1 month
         const deleteResult = await EventFund.deleteMany({ createdAt: { $lt: oneMonthAgo } });
-        console.log("Deleted old records:", deleteResult.deletedCount);
+       
 
         // Find records from the last 1 month for that student
         const recentEventFunds = await EventFund.find({
