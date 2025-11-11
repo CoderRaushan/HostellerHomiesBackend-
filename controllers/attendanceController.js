@@ -1,5 +1,5 @@
 const { validationResult } = require("express-validator");
-const { Student, Attendance } = require("../models");
+const { Student, Attendance, Hostel } = require("../models");
 
 const markAttendance = async (req, res) => {
   let success = false;
@@ -37,12 +37,10 @@ const markAttendance = async (req, res) => {
 };
 
 const getAttendance = async (req, res) => {
+  console.log("att");
   let success = false;
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(422).json({ success, errors: errors.array() });
-  }
   const { student } = req.body;
+  console.log(student)
   try {
     const attendance = await Attendance.find({ student });
     success = true;
@@ -70,15 +68,11 @@ const updateAttendance = async (req, res) => {
 };
 
 const getHostelAttendance = async (req, res) => {
-  let success = false;
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(422).json({ success, errors: errors.array() });
-  }
-  const { hostel } = req.body;
+  const { HostelNo } = req.body;
   try {
     const date = new Date();
-    const students = await Student.find({ hostel });
+    const shostel=await Hostel.findOne({name:HostelNo});
+    const students = await Student.find({ hostel:shostel._id });
     const attendance = await Attendance.find({
       student: { $in: students },
       date: {

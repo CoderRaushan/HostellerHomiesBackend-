@@ -59,13 +59,24 @@ const StudentSchema = new Schema({
         required:true,
         unique:true
     },
-    user:{
-        type:Schema.Types.ObjectId,
-        ref:'user'
+    role:{
+        type:String,
+        required:true,
+        default:'Student'
+    },
+    password:{
+        type:String,
+        required:true
     },
     EventFund:{
         type:Schema.Types.ObjectId,
         ref:'EventFund'
+    },
+    hostelNo: 
+    {
+    type: Number,
+    enum: [1, 2, 3, 4, 5],
+    required: true
     },
     hostel:{
         type:Schema.Types.ObjectId,
@@ -75,6 +86,6 @@ const StudentSchema = new Schema({
         type:Date,
         default:Date.now
     }
-})
+});
 
 module.exports = Student = mongoose.model('student',StudentSchema);

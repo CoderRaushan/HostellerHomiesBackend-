@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { check } = require('express-validator');
 const { registerStudent, getStudent, getAllStudents, updateStudent, deleteStudent, csvStudent,getStudentsById } = require('../controllers/studentController');
-
+const IsCaretaker = require('../utils/IsCaretaker.js');
 // @route  POST api/student/register-student
 // @desc   Register student
 // @access Public
@@ -21,7 +21,7 @@ router.post('/register-student', [
     check('uidai', 'Enter valid uidai').isLength(12),
     check('hostel', 'Hostel is required').not().isEmpty(),
     check('password', 'Please enter a password with 8 or more characters').isLength({ min: 8 }),
-], registerStudent);
+],IsCaretaker, registerStudent);
 
 // @route  POST api/student/get-student
 // @desc   Get student by urn 
@@ -59,21 +59,19 @@ router.put('/update-student/:id', [
     check('uidai', 'uidai is required').not().isEmpty(),
     check('user', 'User is required').not().isEmpty(),
     check('hostel', 'Hostel is required').not().isEmpty()
-], updateStudent);
+], IsCaretaker, updateStudent);
 
 // @route  POST api/student/delete-student
 // @desc   Delete student
 // @access Public
 router.delete('/delete-student', [
     check('id', 'Enter a valid ID').not().isEmpty(),
-], deleteStudent);
+], IsCaretaker, deleteStudent);
 
 // @route  POST api/student/csv
 // @desc   Get CSV of students
 // @access Public
-router.post('/csv', [
-    check('hostel', 'Hostel is required').not().isEmpty()
-], csvStudent);
+router.post('/csv', IsCaretaker, csvStudent);
 
 
 module.exports = router;

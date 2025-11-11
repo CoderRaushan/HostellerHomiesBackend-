@@ -22,6 +22,5 @@ const HostelSchema = new Schema({
         type:Number,
         required:true
     }
-})
-
+});
 module.exports = Hostel = mongoose.model('hostel',HostelSchema);

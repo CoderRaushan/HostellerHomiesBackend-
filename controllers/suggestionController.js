@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator');
 const { Suggestion } = require('../models');
+const { Hostel } = require('../models');
 
 // @route   Register api/suggestion
 // @desc    Register suggestion
@@ -64,7 +65,6 @@ exports.registerSuggestion = async (req, res) => {
 // Get today's suggestion count
 exports.getTodayCount = async (req, res) => {
     try {
-    
         const { student } = req.query;
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
@@ -109,15 +109,11 @@ exports.getHistory = async (req, res) => {
 // @access  Public
 exports.getbyhostel = async (req, res) => {
     let success = false;
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array(), success });
-    }
 
-    const { hostel } = req.body;
+    const { HostelNo } = req.body;
     try {
-        // Populate full student details needed for admin view
-        const suggestions = await Suggestion.find({ hostel })
+        const hostel = await Hostel.findOne({ name: HostelNo });
+        const suggestions = await Suggestion.find({ hostel: hostel._id })
             .populate('student', ['name', 'urn', 'room_no', 'dept', 'batch', 'course', 'email']);
 
         success = true;
@@ -136,7 +132,6 @@ exports.getMonthlyHistoryforadmin = async (req, res) => {
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(today.getMonth() - 1);
 
-    // Fetch only suggestions from last 1 month
     const suggestions = await Suggestion.find({
       date: { $gte: oneMonthAgo },
     }).populate("student");

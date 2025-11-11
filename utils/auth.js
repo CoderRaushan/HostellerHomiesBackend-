@@ -2,8 +2,8 @@ const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 dotenv.config();
 
-exports.generateToken = (userId, isAdmin) => {
-  return jwt.sign({ userId, isAdmin }, process.env.JWT_SECRET, { expiresIn: '1h' });
+exports.generateToken = (Id,email,role) => {
+  return jwt.sign({ Id,email,role }, process.env.JWT_SECRET, { expiresIn: '24h' });
 };
 
 exports.verifyToken = (token) => {

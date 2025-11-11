@@ -1,5 +1,6 @@
 const { validationResult } = require("express-validator");
 const { Complaint } = require("../models");
+const { Hostel } = require("../models");
 
 // @route   Register api/compalint
 // @desc    Register complaint
@@ -7,7 +8,6 @@ const { Complaint } = require("../models");
 exports.registerComplaint = async (req, res) => {
   let success = false;
   const { student, hostel, type, title, description } = req.body;
-
   try {
     // 🔍 Check recent complaints by same student for same type
     const oneDayAgo = new Date();
@@ -50,13 +50,10 @@ exports.registerComplaint = async (req, res) => {
 // @access  Public
 exports.getbyhostel = async (req, res) => {
   let success = false;
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array(), success });
-  }
-  const { hostel } = req.body;
+  const { HostelNo } = req.body;
   try {
-    const complaints = await Complaint.find({ hostel })
+    const hostel= await Hostel.findOne({name:HostelNo});
+    const complaints = await Complaint.find({ hostel: hostel._id })
       .populate("student", ["name", "room_no", "urn"])
       .lean();
     success = true;
@@ -72,10 +69,6 @@ exports.getbyhostel = async (req, res) => {
 // @access  Public
 exports.getbystudent = async (req, res) => {
   let success = false;
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array(), success });
-  }
   const { student } = req.body;
   if (!student) {
     return res

@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { EventFundRegister ,getEventFund,getEventFundBtStudentId,updateEventFundStatus} = require('../controllers/EventFundController.js');
-router.post('/EventFund',EventFundRegister);
-router.get('/EventFund/get', getEventFund);
-router.post("/EventFund/student/get",getEventFundBtStudentId);
-router.put("/EventFund/admin/update",updateEventFundStatus);
+const IsWarden=require("../utils/IsWarden.js");
+const IsStudent = require('../utils/IsStudent.js');
+router.post('/EventFund',IsStudent,EventFundRegister);
+router.get('/EventFund/get',IsWarden, getEventFund);
+router.post("/EventFund/student/get",IsStudent ,getEventFundBtStudentId);
+router.put("/EventFund/admin/update",IsWarden, updateEventFundStatus);
 module.exports = router;

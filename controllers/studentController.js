@@ -11,27 +11,24 @@ const registerStudent = async (req, res) => {
     if (!errors.isEmpty()) {
         return res.status(400).json({ success, errors: errors.array() });
     }
-
     const {
         name, urn, room_no, batch, dept, course,
         accountNumber,
         email, father_name, contact, address,
-        dob, uidai, hostel, password,
+        dob, uidai, hostelNo, password, role
     } = req.body;
 
     if (!name || !urn || !room_no || !batch || !dept || !course ||
         !accountNumber || !email || !father_name || !contact ||
-        !address || !dob || !uidai || !hostel || !password) {
+        !address || !dob || !uidai || !hostelNo || !password || !role) {
         return res.status(400).json({ success, errors: [{ msg: 'Please fill all fields' }] });
     }
 
     try {
-        // Check if student with same URN exists
         let existingStudent = await Student.findOne({ urn });
         if (existingStudent) {
             return res.status(400).json({ success, errors: [{ msg: 'Student with this URN already exists' }] });
         }
-
         // uidai
         existingStudent = await Student.findOne({ uidai });
         if (existingStudent) {
@@ -51,7 +48,7 @@ const registerStudent = async (req, res) => {
         }
 
         // Find hostel
-        const shostel = await Hostel.findOne({ name: hostel });
+        const shostel = await Hostel.findOne({ name: hostelNo });
         if (!shostel) {
             return res.status(400).json({ success, errors: [{ msg: 'Hostel not found' }] });
         }
@@ -69,20 +66,13 @@ const registerStudent = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create new user
-        const user = new User({
-            email,
-            password: hashedPassword,
-            isAdmin: false
-        });
-
-        await user.save();
-
+      
         // Create student linked to user and hostel
         const student = new Student({
             name,
             urn,
             room_no,
+            hostelNo,
             batch,
             dept,
             course,
@@ -93,12 +83,12 @@ const registerStudent = async (req, res) => {
             dob,
             uidai,
             accountNumber,
-            user: user._id,
+            role,
+            password:hashedPassword,
             hostel: shostel._id
         });
 
         await student.save();
-
         room.occupied = true;
         room.student = student._id;
         await room.save();
@@ -188,26 +178,20 @@ const getStudent = async (req, res) => {
 }
 
 const getAllStudents = async (req, res) => {
-
     let success = false;
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ success, errors: errors.array() });
-    }
-
-    let { hostel } = req.body;
-
+    let { name } = req.body;
     try {
-
-        const shostel = await Hostel.findById(hostel);
-
+        const shostel = await Hostel.findOne({ name });
+        if (!shostel) {
+            return res.status(400).json({ success, errors: [{ msg: 'Hostel not found' }] });
+        }
         const students = await Student.find({ hostel: shostel.id }).select('-password');
-
         success = true;
         res.json({ success, students });
     }
     catch (err) {
         res.status(500).json({ success, errors: [{ msg: 'Server error' }] });
+        console.log(err);
     }
 }
 
@@ -260,7 +244,7 @@ const updateStudent = async (req, res) => {
             address,
             dob,
             uidai,
-            hostel,
+            hostelNo,
         } = req.body;
 
         const oldRoomNo = student.room_no;
@@ -303,7 +287,7 @@ const updateStudent = async (req, res) => {
             student.room_no = newRoomNo;
         }
 
-        const shostel = await Hostel.findOne({ name: hostel });
+        const shostel = await Hostel.findOne({ name: hostelNo });
         if (!shostel) {
             return res.status(400).json({ success, errors: [{ msg: 'Hostel not found' }] });
         }
@@ -321,6 +305,7 @@ const updateStudent = async (req, res) => {
             dob,
             uidai,
             hostel: shostel._id,
+            hostelNo
         });
 
         await student.save();
@@ -353,8 +338,6 @@ const deleteStudent = async (req, res) => {
             return res.status(400).json({ success, errors: [{ msg: 'Student does not exist' }] });
         }
 
-        const user = await User.findByIdAndDelete(student.user);
-
         await Student.deleteOne(student);
 
         success = true;
@@ -362,21 +345,16 @@ const deleteStudent = async (req, res) => {
     } catch (err) {
         res.status(500).json({ success, errors: [{ msg: 'Server error' }] });
     }
-}
+};
 
 const csvStudent = async (req, res) => {
     let success = false;
     try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ success, errors: errors.array() });
-        }
+        const { HostelNo } = req.body;
 
-        const { hostel } = req.body;
+        const shostel = await Hostel.findOne({ name: HostelNo });
 
-        const shostel = await Hostel.findById(hostel);
-
-        const students = await Student.find({ hostel: shostel.id }).select('-password');
+        const students = await Student.find({ hostel: shostel._id }).select('-password');
 
         students.forEach(student => {
             student.hostel_name = shostel.name;

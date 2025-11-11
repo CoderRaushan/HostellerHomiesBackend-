@@ -21,6 +21,7 @@ const initRooms = async (req, res) => {
 
 
 
+
 const getAllRooms = async (req, res) => {
   try {
     const rooms = await Room.find().populate('student'); // ✅ populate student data
