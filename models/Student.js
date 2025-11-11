@@ -82,6 +82,11 @@ const StudentSchema = new Schema({
         type:Schema.Types.ObjectId,
         ref:'Hostel'
     },
+    profilePhoto:{
+        type:String,
+        default:"https://thumbs.dreamstime.com/b/skeleton-sitting-under-moonlight-skeleton-sits-stone-gazing-full-moon-night-sky-334139675.jpg"
+    }
+    ,
     date:{
         type:Date,
         default:Date.now

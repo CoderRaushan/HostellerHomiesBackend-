@@ -2,62 +2,119 @@ const Room = require("../models/Room");
 const Student = require("../models/Student");
 
 // ✅ Initialize 200 rooms only once
+// const initRooms = async (req, res) => {
+//   try {
+//     const count = await Room.countDocuments();
+//     if (count > 0) return res.json({ message: "Rooms already initialized" });
+
+//     const rooms = [];
+//     for (let i = 1; i <= 200; i++) {
+//       rooms.push({ roomNumber: i });
+//     }
+//     await Room.insertMany(rooms);
+//     res.json({ message: "200 rooms initialized successfully" });
+//   } catch (err) {
+//     // res.status(500).json({ error: err.message });
+//   }
+// };
+// ✅ Initialize rooms hostel-wise
 const initRooms = async (req, res) => {
   try {
-    const count = await Room.countDocuments();
-    if (count > 0) return res.json({ message: "Rooms already initialized" });
+    const { hostelNo, totalRooms } = req.body;
+
+    if (!hostelNo || !totalRooms)
+      return res.status(400).json({ success: false, message: "Hostel number and total rooms are required" });
+
+    const existingCount = await Room.countDocuments({ hostelNo });
+
+    // If hostel already has rooms, only allow adding more
+    const start = existingCount + 1;
+    const end = existingCount + Number(totalRooms);
 
     const rooms = [];
-    for (let i = 1; i <= 200; i++) {
-      rooms.push({ roomNumber: i });
+    for (let i = start; i <= end; i++) {
+      rooms.push({ roomNumber: i, hostelNo });
     }
+
     await Room.insertMany(rooms);
-    res.json({ message: "200 rooms initialized successfully" });
+    res.json({
+      success: true,
+      message: existingCount > 0
+        ? `Added ${totalRooms} more rooms to Hostel ${hostelNo}`
+        : `${totalRooms} rooms initialized for Hostel ${hostelNo}`,
+    });
   } catch (err) {
-    // res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-initRooms();
 
 
 
+// const getAllRooms = async (req, res) => {
+//   try {
+//     const rooms = await Room.find().populate('student'); // ✅ populate student data
+//     res.json(rooms);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: 'Error fetching rooms' });
+//   }
+// };
 
 const getAllRooms = async (req, res) => {
   try {
-    const rooms = await Room.find().populate('student'); // ✅ populate student data
-    res.json(rooms);
+    const { hostelNo } = req.query;
+    const rooms = await Room.find({ hostelNo }).populate('student');
+    res.json({ success: true, rooms });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error fetching rooms' });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
 
-
 // ✅ Get only empty rooms
+// const getEmptyRooms = async (req, res) => {
+//   try {
+//     const emptyRooms = await Room.find({ occupied: false });
+//     res.json({ success: true, rooms: emptyRooms });
+//   } catch (err) {
+//     res.status(500).json({ success: false, error: err.message });
+//   }
+// };
+
 const getEmptyRooms = async (req, res) => {
   try {
-    const emptyRooms = await Room.find({ occupied: false });
+    const { hostelNo } = req.query;
+    const emptyRooms = await Room.find({ occupied: false, hostelNo });
     res.json({ success: true, rooms: emptyRooms });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
 // ✅ Get occupied rooms with student details
+// const getOccupiedRooms = async (req, res) => {
+//   try {
+//     const occupied = await Room.find({ occupied: true }).populate(
+//       "student",
+//       "name urn room_no"
+//     );
+//     res.json({ success: true, rooms: occupied });
+//   } catch (err) {
+//     res.status(500).json({ success: false, error: err.message });
+//   }
+// };
+
 const getOccupiedRooms = async (req, res) => {
   try {
-    const occupied = await Room.find({ occupied: true }).populate(
-      "student",
-      "name urn room_no"
-    );
+    const { hostelNo } = req.query;
+    const occupied = await Room.find({ occupied: true, hostelNo }).populate("student", "name urn room_no");
     res.json({ success: true, rooms: occupied });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
-
 // ✅ Manually allot room to a student (optional endpoint)
 const allotRoom = async (req, res) => {
   try {

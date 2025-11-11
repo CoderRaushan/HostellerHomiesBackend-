@@ -16,8 +16,11 @@ const RoomSchema = new Schema({
     ref: 'student',
     default: null
   },
-  // 🖼️ (Later) Add image for room or student photo if needed
-  // image: { type: String } 
+  hostelNo:{
+    type:Number,
+    required:true,
+    enum:[1,2,3,4,5]
+  }
 });
 
 module.exports = mongoose.model('Room', RoomSchema);

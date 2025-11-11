@@ -25,10 +25,17 @@ const Guard = require("../models/SecurityGuard.js");
 // };
 
 // Read all
+
 exports.getAllGuards = async (req, res) => {
   try {
-    console.log("Finding....");
-    const guards = await Guard.find().select("-password");
+    const { hostelNo } = req.query;
+    let filter = {};
+
+    if (hostelNo && hostelNo !== "ALL") {
+      filter.hostelNo = hostelNo;
+    }
+
+    const guards = await Guard.find(filter).select("-password");
     res.json({ success: true, guards });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -44,7 +51,10 @@ exports.updateGuard = async (req, res) => {
       { shift, status },
       { new: true }
     );
-    if (!guard) return res.status(404).json({ success: false, message: "Guard not found" });
+
+    if (!guard)
+      return res.status(404).json({ success: false, message: "Guard not found" });
+
     res.json({ success: true, guard });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

@@ -9,6 +9,7 @@ const Guard = require("../models/SecurityGuard.js");
 const Warden = require("../models/Warden.js");
 const PrivilegedStudent = require("../models/PrivilegedStudent.js");
 const Student = require('../models/Student.js');
+const SecurityIncharge = require("../models/SecurityIncharge.js");
 
 exports.login = async (req, res) => {
   let success = false;
@@ -87,7 +88,7 @@ exports.login = async (req, res) => {
             profilePhoto: manager.profilePhoto,
             address: manager.address,
             phoneNo: manager.phone,
-            hostelNo:manager.hostelNo,
+            hostelNo: manager.hostelNo,
           },
         },
       });
@@ -136,11 +137,10 @@ exports.login = async (req, res) => {
           errors: [{ msg: "Invalid Guard Email" }],
         });
       }
-      if(guard.status==="Inactive")
-      {
+      if (guard.status === "Inactive") {
         return res.status(400).json({
           success,
-          errors: [{ msg: "You are not active by Caretaker" }],
+          errors: [{ msg: "You are not active by SecurityGuard" }],
         });
       }
 
@@ -203,6 +203,40 @@ exports.login = async (req, res) => {
             address: warden.address,
             phoneNo: warden.phone,
             hostelNo: warden.hostelNo,
+          },
+        },
+      });
+    }
+    else if (role === "SecurityIncharge") {
+      const oldSecurityIncharge = await SecurityIncharge.findOne({ email });
+      if (!oldSecurityIncharge) {
+        return res.status(400).json({
+          success,
+          errors: [{ msg: "Invalid SecurityIncharge Email" }],
+        });
+      }
+
+      if (oldSecurityIncharge.password !== password) {
+        return res.status(400).json({
+          success,
+          errors: [{ msg: "Invalid SecurityIncharge Password" }],
+        });
+      }
+
+      const token = generateToken(oldSecurityIncharge._id, oldSecurityIncharge.email, oldSecurityIncharge.role);
+      req.userId = oldSecurityIncharge._id;
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          token,
+          Detail: {
+            id: oldSecurityIncharge._id,
+            email: oldSecurityIncharge.email,
+            name: oldSecurityIncharge.name,
+            role: oldSecurityIncharge.role,
+            profilePhoto: oldSecurityIncharge.profilePhoto,
+            phoneNo: oldSecurityIncharge.phone,
           },
         },
       });
@@ -302,10 +336,77 @@ exports.login = async (req, res) => {
   }
 };
 
+exports.CreateGuard = async (req, res) => {
+  try {
+    const { name, email, password, role, phone, hostelNo } = req.body;
+    console.log(req.body);
+    if (!name || !email || !password || !role || !phone || !hostelNo) {
+      return res.status(400).json({
+        success,
+        errors: [{ msg: "Please provide all required fields" }],
+      });
+    }
+    const existingguard = await Guard.findOne({ email });
+    if (existingguard) {
+      return res.status(400).json({
+        success,
+        errors: [{ msg: "Guard with this email already exists" }],
+      });
+    }
+    const newGuard = new Guard({
+      name,
+      email,
+      password,
+      role,
+      phone,
+      hostelNo
+    });
+    await newGuard.save();
+    return res.status(201).json({
+      success: true,
+      msg: "Guard created successfully",
+    });
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      errors: [{ msg: "Server error. Please try again later." }],
+    });
+  }
+}
+
 exports.CreateStaff = async (req, res) => {
   try {
     const { name, email, password, role, phone, hostelNo } = req.body;
-    if (!name || !email || !password || !role || !phone) {
+    if (role === "SecurityIncharge") {
+      if (!name || !email || !password || !role || !phone) {
+        return res.status(400).json({
+          success,
+          errors: [{ msg: "Please provide all required fields" }],
+        });
+      }
+      const existingSecurityIncharge = await SecurityIncharge.findOne({ email });
+      if (existingSecurityIncharge) {
+        return res.status(400).json({
+          success,
+          errors: [{ msg: "SecurityIncharge with this email already exists" }],
+        });
+      }
+      const newSecurityIncharge = new SecurityIncharge({
+        name,
+        email,
+        password,
+        role,
+        phone,
+      });
+      await newSecurityIncharge.save();
+      return res.status(201).json({
+        success: true,
+        msg: "SecurityIncharge created successfully",
+      });
+    }
+    else if (!name || !email || !password || !role || !phone || !hostelNo) {
       return res.status(400).json({
         success,
         errors: [{ msg: "Please provide all required fields" }],
@@ -355,35 +456,14 @@ exports.CreateStaff = async (req, res) => {
         msg: "Caretaker created successfully",
       });
     }
-    else if (role === "Guard") {
-      const existingGuard = await Guard.findOne({ email });
-      if (existingGuard) {
-        return res.status(400).json({
-          success,
-          errors: [{ msg: "Guard with this email already exists" }],
-        });
-      }
-      const newGuard = new Guard({
-        name,
-        email,
-        password,
-        role,
-        phone,
-        hostelNo
-      });
-      await newGuard.save();
-      return res.status(201).json({
-        success: true,
-        msg: "Guard created successfully",
-      });
-    } else if (role === "PrivilegedStudent") {
+    else if (role === "PrivilegedStudent") {
       const existingPrivilegedStudent = await PrivilegedStudent.findOne({ email });
       if (existingPrivilegedStudent) {
         return res.status(400).json({
           success,
           errors: [{ msg: "PrivilegedStudent with this email already exists" }],
         });
-      } 
+      }
       const newPrivilegedStudent = new PrivilegedStudent({
         name,
         email,
@@ -420,7 +500,7 @@ exports.CreateStaff = async (req, res) => {
         msg: "Warden created successfully",
       });
     }
-  
+
   } catch (error) {
     console.log(error);
     return res.status(500).json({
@@ -430,30 +510,20 @@ exports.CreateStaff = async (req, res) => {
   }
 };
 
-exports.getAllStaffDetails = async (req, res) => {
+exports.getAllStaffDetailsbySecurityInch = async (req, res) => {
   try {
-    const [caretakers, guards, wardens, managers, privilegedStudents] = await Promise.all([
-      Caretaker.find({}).select('-password'),
-      Guard.find({}).select('-password'),
-      Warden.find({}).select('-password'),
-      Manager.find({}).select('-password'),
-      PrivilegedStudent.find({}).select('-password'),
-    ]);
+    const { hostelNo } = req.query; // Get hostel number from query string
 
-    // Combine all staff members into one array
-    const allStaff = [
-      ...wardens,
-      ...managers,
-      ...caretakers,
-      ...guards,
-      ...privilegedStudents
-    ];
+    let filter = {};
+    if (hostelNo && hostelNo !== "ALL") {
+      filter = { hostelNo: hostelNo }; // Filter by hostelNo if not ALL
+    }
 
-    // Send response
+    const securityGuard = await Guard.find(filter).select("-password");
+
     return res.status(200).json({
       success: true,
-      total: allStaff.length,
-      StaffDetails: allStaff,
+      StaffDetails: securityGuard,
     });
   } catch (error) {
     console.error("Error fetching staff details:", error.message);
@@ -464,6 +534,73 @@ exports.getAllStaffDetails = async (req, res) => {
   }
 };
 
+
+exports.getAllStaffDetails = async (req, res) => {
+  try {
+    const { hostelNo } = req.body; // ✅ receive hostel number from frontend
+
+    if (!hostelNo) {
+      return res.status(400).json({
+        success: false,
+        errors: [{ msg: "Hostel number is required." }],
+      });
+    }
+
+    const [caretakers, wardens, managers, privilegedStudents, securityIncharges] = await Promise.all([
+      Caretaker.find({ hostelNo }).select('-password'),
+      Warden.find({ hostelNo }).select('-password'),
+      Manager.find({ hostelNo }).select('-password'),
+      PrivilegedStudent.find({ hostelNo }).select('-password'),
+      SecurityIncharge.find().select('-password'),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      staff: {
+        wardens,
+        managers,
+        caretakers,
+        securityIncharges,
+        privilegedStudents,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching staff details:", error.message);
+    return res.status(500).json({
+      success: false,
+      errors: [{ msg: "Server error. Please try again later." }],
+    });
+  }
+};
+
+exports.DeleteGuard = async (req, res) => {
+  try {
+    const { id } = req.body;
+    const staffId = id;
+    if (!staffId) {
+      return res.status(400).json({
+        success,
+        errors: [{ msg: "Please provide role and staff ID" }],
+      });
+    }
+    let deletedStaff;
+    deletedStaff = await Guard.findByIdAndDelete(staffId);
+    if (!deletedStaff) {
+      return res.status(404).json({
+        success: false,
+        errors: [{ msg: "Staff member not found" }],
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      msg: "Guard deleted successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ success: false, errors: [{ msg: "Server error. Please try again later." }] });
+  }
+
+}
 exports.DeleteStaff = async (req, res) => {
   try {
     const { role, id } = req.body;
@@ -503,10 +640,51 @@ exports.DeleteStaff = async (req, res) => {
   }
 };
 
+exports.UpdateGuard = async (req, res) => {
+  let success = false;
+  try {
+    const { email, name, phone, hostelNo, role } = req.body;
+
+    if (!name || !email || !phone || !hostelNo || !role) {
+      return res.status(400).json({
+        success,
+        errors: [{ msg: "Please provide all required fields" }],
+      });
+    }
+
+    let staffMember;
+    staffMember = await Guard.findOne({ email });
+    if (!staffMember) {
+      return res.status(404).json({
+        success,
+        errors: [{ msg: "Guard not found" }],
+      });
+    }
+
+    staffMember.name = name;
+    staffMember.phone = phone;
+    staffMember.hostelNo = hostelNo;
+
+    await staffMember.save();
+
+    return res.status(200).json({
+      success: true,
+      msg: "Guard updated successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      errors: [{ msg: "Server error. Please try again later." }],
+    });
+  }
+};
+
+
 exports.UpdateStaff = async (req, res) => {
   let success = false;
   try {
-    const {email, name, phone, hostelNo, role } = req.body;
+    const { email, name, phone, hostelNo, role } = req.body;
     if (!name || !email || !phone || !hostelNo) {
       return res.status(400).json({
         success,
@@ -515,10 +693,32 @@ exports.UpdateStaff = async (req, res) => {
     }
     // Find the staff member by email
     let staffMember;
-    if (role === "Manager") {
-      staffMember = await Manager.findOne({ email });
+    if (role === "SecurityIncharge") {
+      try {
+        staffMember = await SecurityIncharge.findOne({ email });
+        if (!staffMember) {
+          return res.status(404).json({
+            success,
+            errors: [{ msg: "Staff member not found" }],
+          });
+        }
+        staffMember.name = name;
+        staffMember.phone = phone;
+        await staffMember.save();
+        return res.status(200).json({
+          success: true,
+          msg: "Staff member updated successfully",
+        });
+
+      } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+          success: false,
+          errors: [{ msg: "Server error. Please try again later." }],
+        });
+      }
     }
-     if (role === "Manager") {
+    else if (role === "Manager") {
       staffMember = await Manager.findOne({ email });
     } else if (role === "Guard") {
       staffMember = await Guard.findOne({ email });
@@ -529,12 +729,12 @@ exports.UpdateStaff = async (req, res) => {
     } else if (role === "Warden") {
       staffMember = await Warden.findOne({ email });
     }
-
     if (!staffMember) {
       return res.status(404).json({
         success,
         errors: [{ msg: "Staff member not found" }],
       });
+
     }
 
     // Update staff member details

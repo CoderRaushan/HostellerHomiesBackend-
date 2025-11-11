@@ -61,7 +61,7 @@ const registerStudent = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-      
+
         // Create student linked to user and hostel
         const student = new Student({
             name,
@@ -79,7 +79,7 @@ const registerStudent = async (req, res) => {
             uidai,
             accountNumber,
             role,
-            password:hashedPassword,
+            password: hashedPassword,
             hostel: shostel._id
         });
 
@@ -127,7 +127,7 @@ const getStudent = async (req, res) => {
                 hostel: admin.hostel,
                 date: admin.date,
                 __v: admin.__v,
-                isAdmin:true
+                isAdmin: true
             }
             res.json({ success, student: UpdatedAdmin, isAdmin: true });
         }
@@ -327,13 +327,23 @@ const deleteStudent = async (req, res) => {
 
         const { id } = req.body;
 
-        const student = await Student.findById(id).select('-password');
+        const stu = await Student.findById(id).select('-password');
 
-        if (!student) {
+        if (!stu) {
             return res.status(400).json({ success, errors: [{ msg: 'Student does not exist' }] });
         }
+        // Find the room assigned to this student
+        await Room.updateOne(
+            { student: stu._id },  // find room by student
+            {
+                $set: {
+                    occupied: false,
+                    student: null,
+                },
+            }
+        );
 
-        await Student.deleteOne(student);
+        await Student.deleteOne({ _id: stu._id });
 
         success = true;
         res.json({ success, msg: 'Student deleted successfully' });
