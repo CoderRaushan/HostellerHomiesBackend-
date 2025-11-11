@@ -14,10 +14,11 @@ const initRooms = async (req, res) => {
     await Room.insertMany(rooms);
     res.json({ message: "200 rooms initialized successfully" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // res.status(500).json({ error: err.message });
   }
 };
 
+initRooms();
 
 
 

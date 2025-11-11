@@ -6,22 +6,7 @@ const IsCaretaker = require('../utils/IsCaretaker.js');
 // @route  POST api/student/register-student
 // @desc   Register student
 // @access Public
-router.post('/register-student', [
-    check('name', 'Name is required').not().isEmpty(),
-    check('urn', 'urn of at least 6 digit is required').isLength(7),
-    check('room_no', 'Room number is required').isLength(1),
-    check('batch', 'Batch is required').not().isEmpty(),
-    check('dept', 'Department is required').not().isEmpty(),
-    check('course', 'Course is required').not().isEmpty(),
-    check('email', 'Please include a valid email').isEmail(),
-    check('father_name', 'Father name is required').not().isEmpty(),
-    check('contact', 'Enter a valid contact number').isLength(12),
-    check('address', 'Address is required').not().isEmpty(),
-    check('dob', 'Date of birth is required').not().isEmpty(),
-    check('uidai', 'Enter valid uidai').isLength(12),
-    check('hostel', 'Hostel is required').not().isEmpty(),
-    check('password', 'Please enter a password with 8 or more characters').isLength({ min: 8 }),
-],IsCaretaker, registerStudent);
+router.post('/register-student',IsCaretaker, registerStudent);
 
 // @route  POST api/student/get-student
 // @desc   Get student by urn 

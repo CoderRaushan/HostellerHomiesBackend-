@@ -6,11 +6,6 @@ const bcrypt = require('bcryptjs');
 const Parser = require('json2csv').Parser;
 const registerStudent = async (req, res) => {
     let success = false;
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ success, errors: errors.array() });
-    }
     const {
         name, urn, room_no, batch, dept, course,
         accountNumber,
