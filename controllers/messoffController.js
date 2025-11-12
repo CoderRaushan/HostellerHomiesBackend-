@@ -137,7 +137,7 @@ exports.listMessOff = async (req, res) => {
   try {
     const hostel = await Hostel.findOne({ name: HostelNo });
     const students = await Student.find({ hostel: hostel._id }).select('_id');
-    const list = await MessOff.find({ student: { $in: students }, status: "pending" }).populate('student', ['name', 'room_no']);
+    const list = await MessOff.find({ student: { $in: students }, status: "pending" }).populate('student', ['name', 'room_no','urn', 'accountNumber']);
     const approved = await MessOff.countDocuments({ student: { $in: students }, status: "approved", leaving_date: { $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1), $lte: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0) } });
     const rejected = await MessOff.countDocuments({ student: { $in: students }, status: "rejected", leaving_date: { $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1), $lte: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0) } });
     success = true;

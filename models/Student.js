@@ -44,7 +44,7 @@ const StudentSchema = new Schema({
     accountNumber:{
         type:String,
         required:true,
-         unique:true
+        unique:true
     },
     address:{
         type:String,
