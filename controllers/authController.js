@@ -140,7 +140,7 @@ exports.login = async (req, res) => {
       if (guard.status === "Inactive") {
         return res.status(400).json({
           success,
-          errors: [{ msg: "You are not active by SecurityGuard" }],
+          errors: [{ msg: "You are not active by Security Incharge" }],
         });
       }
 
