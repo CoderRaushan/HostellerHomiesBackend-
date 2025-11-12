@@ -285,10 +285,8 @@ exports.getEventFundBtStudentId = async (req, res) => {
 exports.wardenAction = async (req, res) => {
   try {
     const { eventFundId, status, remark } = req.body;
-    console.log(req.body);
 
     const fund = await EventFund.findById(eventFundId);
-    console.log(fund);
     if (!fund) return res.status(404).json({ success: false, msg: "Request not found!" });
 
     if (status === "approved") {
