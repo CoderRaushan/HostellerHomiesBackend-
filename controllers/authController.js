@@ -10,6 +10,7 @@ const Warden = require("../models/Warden.js");
 const PrivilegedStudent = require("../models/PrivilegedStudent.js");
 const Student = require('../models/Student.js');
 const SecurityIncharge = require("../models/SecurityIncharge.js");
+const Butler = require('../models/Butler.js');
 
 exports.login = async (req, res) => {
   let success = false;
@@ -89,6 +90,42 @@ exports.login = async (req, res) => {
             address: manager.address,
             phoneNo: manager.phone,
             hostelNo: manager.hostelNo,
+          },
+        },
+      });
+    }
+    else if (role === "Butler") {
+      const butler = await Butler.findOne({ email });
+      if (!butler) {
+        return res.status(400).json({
+          success,
+          errors: [{ msg: "Invalid Butler Email" }],
+        });
+      }
+
+      if (butler.password !== password) {
+        return res.status(400).json({
+          success,
+          errors: [{ msg: "Invalid Butler Password" }],
+        });
+      }
+
+      const token = generateToken(butler._id, butler.email, butler.role);
+      req.userId = butler._id;
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          token,
+          Detail: {
+            id: butler._id,
+            email: butler.email,
+            name: butler.name,
+            role: butler.role,
+            profilePhoto: butler.profilePhoto,
+            address: butler.address,
+            phoneNo: butler.phone,
+            hostelNo: butler.hostelNo,
           },
         },
       });
@@ -317,6 +354,7 @@ exports.login = async (req, res) => {
             father_name: student.father_name,
             dob: student.dob,
             hostelNo: student.hostelNo,
+            accountNumber:student.accountNumber
           },
         },
       });
@@ -378,6 +416,7 @@ exports.CreateGuard = async (req, res) => {
 
 exports.CreateStaff = async (req, res) => {
   try {
+    let success=false;
     const { name, email, password, role, phone, hostelNo } = req.body;
     if (role === "SecurityIncharge") {
       if (!name || !email || !password || !role || !phone) {
@@ -478,6 +517,28 @@ exports.CreateStaff = async (req, res) => {
         msg: "PrivilegedStudent created successfully",
       });
     }
+    else if (role === "Butler") {
+      const existingbutler = await Butler.findOne({ email });
+      if (existingbutler) {
+        return res.status(400).json({
+          success,
+          errors: [{ msg: "Butler with this email already exists" }],
+        });
+      }
+      const newButler = new Butler({
+        name,
+        email,
+        password,
+        role,
+        phone,
+        hostelNo
+      });
+      await newButler.save();
+      return res.status(201).json({
+        success: true,
+        msg: "Butler created successfully",
+      });
+    }
     else if (role === "Warden") {
       const existingWarden = await Warden.findOne({ email });
       if (existingWarden) {
@@ -546,12 +607,13 @@ exports.getAllStaffDetails = async (req, res) => {
       });
     }
 
-    const [caretakers, wardens, managers, privilegedStudents, securityIncharges] = await Promise.all([
+    const [caretakers, wardens, managers, privilegedStudents, securityIncharges, butler] = await Promise.all([
       Caretaker.find({ hostelNo }).select('-password'),
       Warden.find({ hostelNo }).select('-password'),
       Manager.find({ hostelNo }).select('-password'),
       PrivilegedStudent.find({ hostelNo }).select('-password'),
       SecurityIncharge.find().select('-password'),
+      Butler.find().select('-password')
     ]);
 
     return res.status(200).json({
@@ -562,6 +624,7 @@ exports.getAllStaffDetails = async (req, res) => {
         caretakers,
         securityIncharges,
         privilegedStudents,
+        butler
       },
     });
   } catch (error) {
@@ -623,6 +686,9 @@ exports.DeleteStaff = async (req, res) => {
     }
     else if (role === "Warden") {
       deletedStaff = await Warden.findByIdAndDelete(staffId);
+    }
+    else if (role === "Butler") {
+      deletedStaff = await Butler.findByIdAndDelete(staffId);
     }
     if (!deletedStaff) {
       return res.status(404).json({
@@ -728,6 +794,9 @@ exports.UpdateStaff = async (req, res) => {
       staffMember = await PrivilegedStudent.findOne({ email });
     } else if (role === "Warden") {
       staffMember = await Warden.findOne({ email });
+    }
+    else if (role === "Butler") {
+      staffMember = await Butler.findOne({ email });
     }
     if (!staffMember) {
       return res.status(404).json({

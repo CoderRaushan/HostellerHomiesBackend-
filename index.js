@@ -26,13 +26,15 @@ app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/complaint", require("./routes/complaintRoutes"));
 app.use("/api/invoice", require("./routes/invoiceRoutes"));
 app.use("/api/messoff", require("./routes/messoffRoutes"));
-app.use("/api/request", require("./routes/requestRoutes"));
+app.use("/api/requests", require("./routes/requestRoutes"));
 app.use("/api/attendance", require("./routes/attendanceRoutes"));
 app.use("/api/suggestion", require("./routes/suggestionRoutes"));
 app.use("/api/Event", require("./routes/EventFundRoutes.js"));
 app.use("/api/guard", require("./routes/securityGuards.js"));
 app.use("/api/rooms", require("./routes/roomRoutes"));
-
+app.use("/api/bill",require("./routes/billRoutes.js"));
+app.use("/api/items", require("./routes/items.js"));
+app.use("/api/hostel-settings",require("./routes/hostelSettings.js"));
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });

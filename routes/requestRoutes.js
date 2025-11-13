@@ -1,18 +1,11 @@
+// routes/requestRoutes.js
 const express = require('express');
 const router = express.Router();
-const { check } = require('express-validator');
-const { register, getAll } = require('../controllers/requestController');
+const reqCtrl = require('../controllers/requestController');
 
-// @route   POST api/request/register
-// @desc    Register request
-// @access  Public
-router.post('/register', [
-    check('urn', 'urn is required').not().isEmpty()
-], register);
-
-// @route   GET api/request/getall
-// @desc    Get all requests
-// @access  Public
-router.get('/getall', getAll);
+router.post('/create', reqCtrl.createRequest);
+router.get('/student/:studentId', reqCtrl.getRequestsByStudent);
+router.get('/pending', reqCtrl.getPendingRequests);
+router.post('/:id/approve', reqCtrl.approveRequest);
 
 module.exports = router;
