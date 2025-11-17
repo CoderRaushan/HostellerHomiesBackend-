@@ -833,11 +833,7 @@ async function run() {
   }
 }
 
-run();
 
-  // Allow running this file directly via "node dailyDietJob.js"
 if (require.main === module) {
-  import('./dailyDietJob.js').then(({ default: runDailyDietJob }) => {
-    runDailyDietJob();
-  });
+  run();
 }
