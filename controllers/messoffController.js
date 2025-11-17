@@ -543,6 +543,49 @@ exports.requestMessOff = async (req, res) => {
 };
 
 // ---------- Student: Request Mess ON (return_date) ----------
+// exports.requestMessOn = async (req, res) => {
+//   let success = false;
+//   const errors = validationResult(req);
+//   if (!errors.isEmpty()) return res.status(400).json({ message: errors.array(), success });
+
+//   try {
+//     const { student, return_date } = req.body;
+//     if (!student || !return_date) return res.status(400).json({ success, message: "student & return_date required" });
+
+//     const today = stripTime(new Date());
+//     const ret = stripTime(new Date(return_date));
+
+//     if (ret < today) {
+//       return res.status(400).json({ success, message: "Return date cannot be past." });
+//     }
+
+//     // Find latest approved off for this student that has no return_date yet
+//     const approvedOff = await MessOff.findOne({ student, status: 'approved', return_date: null }).sort({ leaving_date: -1 });
+//     if (!approvedOff) {
+//       return res.status(400).json({ success, message: "No active approved mess-off found to request mess-on." });
+//     }
+
+//     // return_date must be >= leaving_date
+//     const leave = stripTime(approvedOff.leaving_date);
+//     if (ret.getTime() < leave.getTime()) {
+//       return res.status(400).json({ success, message: "Return date cannot be before leaving date." });
+//     }
+
+//     // mark this document as on_pending and set return_date (pending approval)
+//     approvedOff.return_date = ret;
+//     approvedOff.status = 'on_pending';
+//     await approvedOff.save();
+
+//     success = true;
+//     return res.status(200).json({ success, message: "Mess on request sent (pending)." });
+
+//   } catch (err) {
+//     console.error(err);
+//     return res.status(500).json({ success: false, message: "Server Error" });
+//   }
+// };
+
+// Assumes stripTime(date) returns a Date with time set to 00:00:00 for comparisons
 exports.requestMessOn = async (req, res) => {
   let success = false;
   const errors = validationResult(req);
@@ -555,8 +598,9 @@ exports.requestMessOn = async (req, res) => {
     const today = stripTime(new Date());
     const ret = stripTime(new Date(return_date));
 
-    if (ret < today) {
-      return res.status(400).json({ success, message: "Return date cannot be past." });
+    // Return date cannot be in the past (relative to today)
+    if (ret.getTime() < today.getTime()) {
+      return res.status(400).json({ success, message: "Return date cannot be in the past." });
     }
 
     // Find latest approved off for this student that has no return_date yet
@@ -565,8 +609,24 @@ exports.requestMessOn = async (req, res) => {
       return res.status(400).json({ success, message: "No active approved mess-off found to request mess-on." });
     }
 
-    // return_date must be >= leaving_date
+    // compute leaving_date (date-only)
     const leave = stripTime(approvedOff.leaving_date);
+
+    // Minimum allowed request date = leaving_date + 1 day
+    const minRequestDate = new Date(leave);
+    minRequestDate.setDate(minRequestDate.getDate() + 1);
+    const minReq = stripTime(minRequestDate);
+
+    // --- RELAXED rule: allow request ON or AFTER next day, and return_date must be ON or AFTER next day ---
+    if (today.getTime() < minReq.getTime()) {
+      return res.status(400).json({ success, message: `You can submit mess-on request from ${minReq.toISOString().slice(0,10)} onwards.` });
+    }
+
+    if (ret.getTime() < minReq.getTime()) {
+      return res.status(400).json({ success, message: `Return date cannot be before ${minReq.toISOString().slice(0,10)}.` });
+    }
+
+    // additionally ensure return_date is not before leaving_date (defensive)
     if (ret.getTime() < leave.getTime()) {
       return res.status(400).json({ success, message: "Return date cannot be before leaving date." });
     }
@@ -584,6 +644,7 @@ exports.requestMessOn = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
 
 // ---------- Admin: update request status ----------
 exports.updateMessOff = async (req, res) => {

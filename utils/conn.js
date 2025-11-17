@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 const SuperAdmin = require("../models/SuperAdmin.js");
 const mongoURI = process.env.MONGODB_URI;
-const { setupDailyDietCron } = require('../utils/dailyDietJob.js');
+// const { setupDailyDietCron } = require('../utils/dailyDietJob.js');
 const connectDB = async () => {
     try {
         await mongoose.connect(mongoURI, {
@@ -10,7 +10,7 @@ const connectDB = async () => {
             useUnifiedTopology: true,
         });
         console.log('MongoDB connection SUCCESS');
-        setupDailyDietCron();
+        // setupDailyDietCron();
         // await InitSuperAdmin();
     } catch (error) {
         console.error('MongoDB connection FAIL');

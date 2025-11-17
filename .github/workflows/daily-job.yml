@@ -1,0 +1,25 @@
+name: Daily Diet Job
+
+on:
+  schedule:
+    - cron: "10 20 * * *" # 12:00 AM IST = 18:30 UTC (previous day)
+  workflow_dispatch: # manual trigger option
+
+jobs:
+  run-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install deps
+        run: npm install
+
+      - name: Run daily diet job
+        run: npm run run-daily-diet
