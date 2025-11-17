@@ -318,3 +318,8 @@ async function run() {
 if (require.main === module) {
   run();
 }
+// Export runner for CommonJS require()
+module.exports = run;
+// convenience aliases (optional)
+module.exports.run = run;
+module.exports.default = run;
