@@ -16,6 +16,7 @@ const MessOff = require('../models/MessOff');
 // Constants used in bills/items
 const DIET_NAME = "diet";
 const CLOSED_NAME = "closed";
+const MESS_CLOSED = "Whole Mess was closed"
 const REBATE_NAME = "Rebate";
 
 /**
@@ -68,9 +69,9 @@ function removeRebateFromDay(day, rebatePrice) {
  */
 async function isStudentOffOnDate(studentId, dateObj) {
   const dayStart = new Date(dateObj);
-  dayStart.setHours(0,0,0,0);
+  dayStart.setHours(0, 0, 0, 0);
   const dayEnd = new Date(dayStart);
-  dayEnd.setHours(23,59,59,999);
+  dayEnd.setHours(23, 59, 59, 999);
 
   const off = await MessOff.findOne({
     student: studentId,
@@ -84,7 +85,7 @@ async function isStudentOffOnDate(studentId, dateObj) {
 
   if (off) {
     // Debug — remove or lower verbosity in production
-    console.log(`[isStudentOffOnDate] found off record for student=${studentId} covering ${dayStart.toISOString().slice(0,10)}; status=${off.status}, leaving=${off.leaving_date?.toISOString()||'null'}, return=${off.return_date?.toISOString()||'null'}`);
+    console.log(`[isStudentOffOnDate] found off record for student=${studentId} covering ${dayStart.toISOString().slice(0, 10)}; status=${off.status}, leaving=${off.leaving_date?.toISOString() || 'null'}, return=${off.return_date?.toISOString() || 'null'}`);
   }
   return !!off;
 }
@@ -112,7 +113,65 @@ async function addDietForAllStudents() {
 
     // if today whole mess is closed for that hostel -> do nothing (as requested)
     if (isTodayMessClose) {
-      console.log(`[dailyDietJob] Mess is marked OFF for hostel ${hostelNo} today (isTodayMessOff=true). No changes made.`);
+      const { year, month, date, isoDate } = getISTDateParts();
+      console.log(`[dailyDietJob] Mess is marked OFF for hostel ${hostelNo} today (isTodayMessOff=true). Adding/marking today's date (${year}-${month}-${date}) as CLOSED in students' bills.`);
+
+      // fetch students from that hostel
+      const studentsForClose = await Student.find({ hostelNo }, { _id: 1 }).lean();
+      if (!studentsForClose || studentsForClose.length === 0) {
+        console.log('[dailyDietJob] No students found for that hostel while marking whole-mess closed.');
+        return;
+      }
+
+      for (const s of studentsForClose) {
+        const studentId = s._id;
+        let bill = await Bill.findOne({ studentId, year, month });
+
+        if (!bill) {
+          // create a fresh bill for this month if missing
+          bill = new Bill({
+            studentId,
+            year,
+            month,
+            days: [],
+            totalDietAmount: 0,
+            totalItemsAmount: 0,
+            hostelNo
+          });
+        }
+
+        // find day object for this date (dates stored as integer day of month)
+        let day = (bill.days || []).find(d => Number(d.date) === Number(date));
+
+        if (!day) {
+          // create new CLOSED day (no rebate for whole-mess-close)
+          const newDay = {
+            date,
+            isMessClose: true,
+            diet: { name: MESS_CLOSED, price: 0 },
+            items: []
+          };
+          bill.days.push(newDay);
+          // if previously there was no diet added, no change to totalDietAmount needed
+          await bill.save();
+          console.log(`[dailyDietJob] student ${studentId} - added CLOSED for ${year}-${month}-${date}`);
+        } else {
+          // update existing day to CLOSED; adjust totals if needed
+          const existingDietPrice = Number(day.diet?.price || 0);
+          if (existingDietPrice > 0) {
+            bill.totalDietAmount = (bill.totalDietAmount || 0) - existingDietPrice;
+            if (bill.totalDietAmount < 0) bill.totalDietAmount = 0;
+          }
+
+          day.diet = { name: CLOSED_NAME, price: 0 };
+          day.isMessClose = true;
+          // keep items as-is (do not auto-add/remove rebates here)
+          await bill.save();
+          console.log(`[dailyDietJob] student ${studentId} - updated existing day -> CLOSED for ${year}-${month}-${date}`);
+        }
+      }
+
+      console.log('[dailyDietJob] All students updated for hostel-level mess CLOSE today.');
       return;
     }
 
@@ -309,7 +368,7 @@ async function run() {
     process.exit(0);
   } catch (err) {
     console.error('[runDailyDiet] Error:', err);
-    try { await mongoose.disconnect(); } catch(e) {}
+    try { await mongoose.disconnect(); } catch (e) { }
     process.exit(1);
   }
 }
@@ -320,6 +379,15 @@ if (require.main === module) {
 }
 // Export runner for CommonJS require()
 module.exports = run;
-// convenience aliases (optional)
-module.exports.run = run;
-module.exports.default = run;
+
+// const path = require("path");
+// require("dotenv").config({
+//   path: path.join(__dirname, "../.env")
+// });
+// async function test() {
+//   const mongoose = require('mongoose');
+//   await mongoose.connect(process.env.MONGODB_URI);
+//   await mongoose.connection.db.collection('job_locks').deleteOne({_id:'dailyDietJob-lock'});
+//   await mongoose.disconnect();
+// }
+// test();
