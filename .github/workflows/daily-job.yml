@@ -2,7 +2,8 @@ name: Daily Diet Job
 
 on:
   schedule:
-    - cron: "10 20 * * *" # 12:00 AM IST = 18:30 UTC (previous day)
+    # - cron: "10 20 * * *" # 12:00 AM IST = 18:30 UTC (previous day)
+   - cron: "16 20 * * *"
   workflow_dispatch: # manual trigger option
 
 jobs:

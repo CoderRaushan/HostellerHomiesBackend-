@@ -14,9 +14,9 @@ const Bill = require('../models/Bill');
 const MessOff = require('../models/MessOff');
 
 // Constants used in bills/items
-const DIET_NAME = "diet";
-const CLOSED_NAME = "closed";
-const MESS_CLOSED = "Whole Mess was closed"
+const DIET_NAME = "Diet";
+const CLOSED_NAME = "The student had mess off.";
+const MESS_CLOSED = "The entire mess was closed."
 const REBATE_NAME = "Rebate";
 
 /**
